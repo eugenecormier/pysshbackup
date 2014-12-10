@@ -1,13 +1,13 @@
 <pysshbackupsettings>
-  <backupfolder>/folder/on/server/</backupfolder>
-  <sshserver>servername</sshserver>
-  <sshuser>root</sshuser>
-  <sshpass></sshpass>
+  <backupfolder>/path/to/folder/on/backup/server/</backupfolder>
+  <sshserver>server</sshserver>
+  <sshuser>serveruser</sshuser>
+  <sshpass>serverpassword</sshpass>
+  <sshport>22</sshport>
   <file>/var/lib/portage/world</file>
   <file>/usr/src/linux/.config</file>
-  <folder>/etc/</folder>
-  <folder>/home/</folder>
-  <folder>/var/</folder>
-  <folder>/boot/</folder>
-  <folder>/root/</folder>
+  <folder>/home/ecormier/Contacts/</folder>
+  <folder>/home/ecormier/Calendar/</folder>
+  <exception>Virtual/</exception>
+  <exception>Videos/</exception>
 </pysshbackupsettings>
