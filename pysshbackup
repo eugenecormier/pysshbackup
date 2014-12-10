@@ -1,0 +1,184 @@
+#!/usr/bin/env python2
+
+##############################################
+## IMPORTS
+##############################################
+
+import os
+from subprocess import call
+
+# for ssh connections
+import paramiko
+
+# for xml file parsing
+import elementtree.ElementTree as ET
+
+##############################################
+## INITIALIZE REQUIRED COMPONENTS
+##############################################
+loop = True
+defaults = ET.parse(os.path.expanduser('~/.pysshbackup/defaults.xml'))
+folders = defaults.findall('.//folder')
+files = defaults.findall('.//file')
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh.connect(defaults.findtext("sshserver"), username=defaults.findtext("sshuser"), password=defaults.findtext("sshpass"))
+
+##############################################
+## START PROGRAM LOOP
+##############################################
+
+os.system("clear")
+print ("\npysshbackup v1.0\n----------------\n")
+while loop == True:
+
+## MAIN MENU
+    response = raw_input("Command (h for help): ")
+
+##############################################
+## HELP
+##############################################
+    if response == 'h':
+        os.system("clear")
+        print ("\npysshbackup v1.0\n----------------\n")
+        print ('\ncommand action\nl list backups\nf create a new full backup (this must be done the first time)\np create a partial backup\nr resume an interrupted sync\nd delete backup\nh help\nq quit\n')
+
+##############################################
+## CREATE PARTIAL
+##############################################
+
+    elif response == 'p':
+        os.system("clear")
+        print ("\npysshbackup v1.0\n----------------\n")
+        stdin, stdout, stderr = ssh.exec_command("ls " + defaults.findtext("backupfolder") )
+        for index,object in enumerate(stdout):
+            print ( str(index+1) + "   " + object.rstrip() )
+        print ('')
+        mostrecent = raw_input("Which backup is your most recent[#]? ")
+        partialname = raw_input("What would you like to call the new partial backup? ")
+        stdin, stdout, stderr = ssh.exec_command("ls " + defaults.findtext("backupfolder") )
+        partiallist = []
+        for object in stdout:
+            partiallist.append(object)
+        partiallistname = partiallist[int(mostrecent) - 1]
+        print ("Hardlinking " + partiallistname.rstrip() + " to " + partialname)
+        stdin, stdout, stderr = ssh.exec_command( str("cp -al " + defaults.findtext("backupfolder") + partiallistname.rstrip() + " " + defaults.findtext("backupfolder") + partialname ) )
+        print stdout.readlines()
+
+        ## rsync code for files
+        for i in files:
+            print ('Backing up: ' + i.text)
+            call('rsync -a -P --delete --exclude "Virtual/" --exclude "Videos/" -e ssh ' + i.text + " " + defaults.findtext("sshuser") + "@" + defaults.findtext("sshserver") + ":" + defaults.findtext("backupfolder") + partialname, shell=True)
+            print ('Done.')
+
+        ## rsync code for folders
+        for i in folders:
+            print ('Backing up: ' + i.text)
+            call('rsync -a -P --delete --exclude "Virtual/" --exclude "Videos/" -e ssh ' + i.text + " " + defaults.findtext("sshuser") + "@" + defaults.findtext("sshserver") + ":" + defaults.findtext("backupfolder") + partialname + i.text, shell=True)
+            print ('Done.')
+
+##############################################
+## CREATE FULL
+##############################################
+
+    elif response == 'f':
+        os.system("clear")
+        print ("\npysshbackup v1.0\n----------------\n")
+        fullname = raw_input("What would you like to call the new full backup? ")
+
+        ## this makes the directory
+        stdin, stdout, stderr = ssh.exec_command( str("mkdir " + defaults.findtext("backupfolder") + fullname ) )
+        print stdout.readlines()
+
+        ## rsync code for files
+        for i in files:
+            print ('Backing up: ' + i.text)
+            call('rsync -a -P --delete --exclude "Virtual/" --exclude "Videos/" -e ssh ' + i.text + " " + defaults.findtext("sshuser") + "@" + defaults.findtext("sshserver") + ":" + defaults.findtext("backupfolder") + fullname, shell=True)
+            print ('Done.')
+
+        ## rsync code for folders
+        for i in folders:
+            print ('Backing up: ' + i.text)
+            call('rsync -a -P --delete --exclude "Virtual/" --exclude "Videos/" -e ssh ' + i.text + " " + defaults.findtext("sshuser") + "@" + defaults.findtext("sshserver") + ":" + defaults.findtext("backupfolder") + fullname + i.text, shell=True)
+            print ('Done.')
+
+##############################################
+## DELETE
+##############################################
+
+    elif response == 'd':
+        os.system("clear")
+        print ("\npysshbackup v1.0\n----------------\n")
+        deletenumber = raw_input("Which backup do you want to delete[#]? ")
+        stdin, stdout, stderr = ssh.exec_command("ls " + defaults.findtext("backupfolder") )
+        deletelist = []
+        for object in stdout:
+            deletelist.append(object)
+        deletelistname = deletelist[ int(deletenumber) - 1 ]
+        yesno = raw_input("Are you sure you want to delete: " + deletenumber + " " + deletelistname.rstrip() + "? (Y/n) ")
+        if (yesno == 'y' or yesno == 'Y' or yesno == 'yes' or yesno == 'Yes' or yesno == ''):
+            stdin, stdout, stderr = ssh.exec_command("rm -r " + defaults.findtext("backupfolder") + deletelist[ int(deletenumber) - 1 ] )
+            print stdout.readlines()
+
+##############################################
+## RESUME
+##############################################
+
+    elif response == 'r':
+        os.system("clear")
+        print ("\npysshbackup v1.0\n----------------\n")
+        stdin, stdout, stderr = ssh.exec_command("ls " + defaults.findtext("backupfolder") )
+        for index,object in enumerate(stdout):
+            print ( str(index+1) + "   " + object.rstrip() )
+        print ('')
+        resumenumber = raw_input('Which backup would you like to resume[#]? ')
+        stdin, stdout, stderr = ssh.exec_command("ls " + defaults.findtext("backupfolder") )
+        resumelist = []
+        for object in stdout:
+            resumelist.append(object)
+        resumelistname = resumelist[ int(resumenumber) - 1 ]
+        yesno = raw_input("Are you sure you want to resume: " + resumelistname.rstrip() + "? (Y/n) ")
+        if (yesno == 'y' or yesno == 'Y' or yesno == 'yes' or yesno == 'Yes' or yesno == ''):
+            createname = resumelistname.rstrip()
+            ## rsync code for files
+            for i in files:
+                print ('Backing up: ' + i.text)
+                call('rsync -a -P --delete --exclude "Virtual/" --exclude "Videos/" -e ssh ' + i.text + " " + defaults.findtext("sshuser") + "@" + defaults.findtext("sshserver") + ":" + defaults.findtext("backupfolder") + createname, shell=True)
+                print ('Done.')
+
+            ## rsync code for folders
+            for i in folders:
+                print ('Backing up: ' + i.text)
+                call('rsync -a -P --delete --exclude "Virtual/" --exclude "Videos/" -e ssh ' + i.text + " " + defaults.findtext("sshuser") + "@" + defaults.findtext("sshserver") + ":" + defaults.findtext("backupfolder") + createname + i.text, shell=True)
+                print ('Done.')
+
+##############################################
+## LIST
+##############################################
+
+    elif response == 'l':
+        os.system("clear")
+        print ("\npysshbackup v1.0\n----------------\n")
+        stdin, stdout, stderr = ssh.exec_command("ls " + defaults.findtext("backupfolder") )
+        for index,object in enumerate(stdout):
+            print ( str(index+1) + "   " + object.rstrip() )
+        print ('')
+
+##############################################
+## QUIT
+##############################################
+
+    elif response == 'q':
+        os.system("clear")
+        ssh.close()
+        loop = False
+
+##############################################
+## WRONG KEY
+##############################################
+
+    else:
+        os.system("clear")
+        print ("There is no '{0}' option, use 'h' for help").format(response)
+
+
