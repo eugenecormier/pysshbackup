@@ -45,12 +45,12 @@ def syncFileFolders(files,folders,backupname,excludes):
   # rsync code for files
   for i in files:
     print ('\nBacking up: ' + i.text + '\n')
-    call('rsync -aHAx -P --delete ' + excludes + ' -e \'ssh -p ' + defaults.findtext('sshport') + '\' '  + i.text + ' ' + defaults.findtext('sshuser') + '@' + defaults.findtext('sshserver') + ':' + defaults.findtext('backupfolder') + backupname, shell=True)
+    call('rsync -aHAP --delete ' + excludes + ' -e \'ssh -p ' + defaults.findtext('sshport') + '\' '  + i.text + ' ' + defaults.findtext('sshuser') + '@' + defaults.findtext('sshserver') + ':' + defaults.findtext('backupfolder') + backupname, shell=True)
     print ('\nDone.\n')
   # rsync code for folders
   for i in folders:
     print ('\nBacking up: ' + i.text + '\n')
-    call('rsync -aHAx -P --delete ' + excludes + ' -e \'ssh -p ' + defaults.findtext(    'sshport') + '\' ' + i.text + ' ' + defaults.findtext('sshuser') + '@' + defaults.findtext('sshserver') + ':' + defaults.findtext('backupfolder') + backupname + i.text, shell=True)
+    call('rsync -aHAP --delete ' + excludes + ' -e \'ssh -p ' + defaults.findtext(    'sshport') + '\' ' + i.text + ' ' + defaults.findtext('sshuser') + '@' + defaults.findtext('sshserver') + ':' + defaults.findtext('backupfolder') + backupname + i.text, shell=True)
     print ('\nDone.\n')
 
 # HELP
@@ -81,17 +81,23 @@ def partialBackup(files,folders):
   partiallistname = partiallist[int(mostrecent) - 1]
   print ('\nHardlinking ' + partiallistname.rstrip() + ' to ' + partialname + '\n')
   stdin, stdout, stderr = ssh.exec_command(str('cp -al ' + defaults.findtext('backupfolder') + partiallistname.rstrip() + ' ' + defaults.findtext('backupfolder') + partialname))
+  # this is needed to wait for copy process to finish before rsyncing vvv
+  print stdout.readlines()
   syncFileFolders(files,folders,partialname,exceptionsVariable(exceptions))
 
 # FULL
 def fullBackup(files,folders):
   titleScreen()
   fullname = raw_input('What would you like to call the new full backup? ')
-  # this makes the directory
+  # this makes the directory vvv
   stdin, stdout, stderr = ssh.exec_command(str('mkdir -p ' + defaults.findtext('backupfolder') + fullname ))
+  # this is needed to wait for mkdir process to finish before rsyncing vvv
+  print stdout.readlines()
   for i in folders:
     print ('\nCreating folder: ' + i.text + '\n')
     stdin, stdout, stderr = ssh.exec_command(str('mkdir -p ' + defaults.findtext('backupfolder') + fullname + i.text ))
+    # this is needed to wait for mkdir process to finish before rsyncing vvv
+    print stdout.readlines()
   syncFileFolders(files,folders,fullname,exceptionsVariable(exceptions))
 
 # DELETE
@@ -106,6 +112,8 @@ def deleteBackup():
   yesno = raw_input('Are you sure you want to delete: ' + deletenumber + ' ' + deletelistname.rstrip() + '? (Y/n) ')
   if (yesno == 'y' or yesno == 'Y' or yesno == 'yes' or yesno == 'Yes' or yesno == ''):
     stdin, stdout, stderr = ssh.exec_command('rm -r ' + defaults.findtext('backupfolder') + deletelist[ int(deletenumber) - 1 ] )
+    # this is needed to wait for mkdir process to finish before rsyncing vvv
+    print stdout.readlines()
 
 # RESUME
 def resumeBackup(files,folders):
