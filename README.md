@@ -29,4 +29,4 @@ python, paramiko, rsync, ssh, elementtree
 
 
 **** This script works best with passwordless ssh by key
-
+**** I have 'Virtual' and 'Videos' as exceptions hardcoded, when I get a proper exception variable set in defaults.xml, I'll remove these. (This means if you backup your home folder and do not remove the exceptions, folders 'Virtual' and 'Videos' will not be synced)
