@@ -6,10 +6,13 @@
 
 import os
 from subprocess import call
+import time
 # for ssh connections
 import paramiko
 # for xml file parsing
 import elementtree.ElementTree as ET
+# cli args
+import argparse
 
 
 ##############################################
@@ -23,7 +26,10 @@ exceptions = defaults.findall('.//exception')
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.connect(defaults.findtext('sshserver'), port=int(defaults.findtext('sshport')), username=defaults.findtext('sshuser'), password=defaults.findtext('sshpass'))
-
+# cli args
+cliargs = argparse.ArgumentParser(description='Random Music Theory Test Generator.', usage='%(prog)s [options]')
+cliargs.add_argument( '-p' , '--partial-cli' , help='run partial backup (automated)' , action='store_true' )
+args = cliargs.parse_args()
 
 ##############################################
 ## DEFINITIONS
@@ -84,6 +90,18 @@ def partialBackup(files,folders):
   # this is needed to wait for copy process to finish before rsyncing vvv
   print stdout.readlines()
   syncFileFolders(files,folders,partialname,exceptionsVariable(exceptions))
+
+# CLI PARTIAL
+def clipartialBackup(files,folders):
+  stdin, stdout, stderr = ssh.exec_command('ls ' + defaults.findtext('backupfolder'))
+  backupslist = [ ]
+  for i in stdout:
+    backupslist.append(i)
+  print ('Hardlinking from: ' + backupslist[-1].rstrip() + ' to: ' + time.strftime('%Y-%m-%d') )
+  stdin, stdout, stderr = ssh.exec_command(str('cp -al ' + defaults.findtext('backupfolder') + backupslist[-1].rstrip() + ' ' + defaults.findtext('backupfolder') + time.strftime('%Y-%m-%d') ))
+  # this is needed to wait for copy process to finish before rsyncing vvv
+  print stdout.readlines()
+  syncFileFolders(files,folders,time.strftime('%Y-%m-%d'),exceptionsVariable(exceptions))
 
 # FULL
 def fullBackup(files,folders):
@@ -146,28 +164,31 @@ def listBackup():
 ##############################################
 
 def main():
-  loop = True
-  titleScreen()
-  while loop == True:
-    response = raw_input('Command (h for help): ')
-    if response == 'h':
-      helpMenu()
-    elif response == 'p':
-      partialBackup(files,folders)
-    elif response == 'f':
-      fullBackup(files,folders)
-    elif response == 'd':
-      deleteBackup()
-    elif response == 'r':
-      resumeBackup(files,folders)
-    elif response == 'l':
-      listBackup()
-    elif response == 'q':
-      os.system('clear')
-      ssh.close()
-      loop = False
-    else:
-      os.system('clear')
-      print ('There is no \'{0}\' option, use \'h\' for help').format(response)
+  if args.partial_cli:
+    clipartialBackup(files,folders)
+  else:
+    loop = True
+    titleScreen()
+    while loop == True:
+      response = raw_input('Command (h for help): ')
+      if response == 'h':
+        helpMenu()
+      elif response == 'p':
+        partialBackup(files,folders)
+      elif response == 'f':
+        fullBackup(files,folders)
+      elif response == 'd':
+        deleteBackup()
+      elif response == 'r':
+        resumeBackup(files,folders)
+      elif response == 'l':
+        listBackup()
+      elif response == 'q':
+        os.system('clear')
+        ssh.close()
+        loop = False
+      else:
+        os.system('clear')
+        print ('There is no \'{0}\' option, use \'h\' for help').format(response)
 
 main()
