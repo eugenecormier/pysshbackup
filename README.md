@@ -3,7 +3,7 @@ pysshbackup
 
 A python cli for 'ssh + rsync + cp with hardlinks' backups featuring menu and incremental backups
 
- Pysshbackup v2.0
+ Pysshbackup v2.1
    A python backup system
 
 Installation

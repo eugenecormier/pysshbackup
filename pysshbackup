@@ -19,13 +19,13 @@ import argparse
 ## INITIALIZE REQUIRED COMPONENTS
 ##############################################
 
-defaults = ET.parse(os.path.expanduser('~/.pysshbackup/defaults.xml'))
-folders = defaults.findall('.//folder')
-files = defaults.findall('.//file')
-exceptions = defaults.findall('.//exception')
+settings = ET.parse(os.path.expanduser('~/.pysshbackup/defaults.xml'))
+folders = settings.findall('.//folder')
+files = settings.findall('.//file')
+exceptions = settings.findall('.//exception')
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect(defaults.findtext('sshserver'), port=int(defaults.findtext('sshport')), username=defaults.findtext('sshuser'), password=defaults.findtext('sshpass'))
+ssh.connect(settings.findtext('sshserver'), port=int(settings.findtext('sshport')), username=settings.findtext('sshuser'), password=settings.findtext('sshpass'))
 # cli args
 cliargs = argparse.ArgumentParser(description='Random Music Theory Test Generator.', usage='%(prog)s [options]')
 cliargs.add_argument( '-p' , '--partial-cli' , help='run partial backup (automated)' , action='store_true' )
@@ -38,7 +38,7 @@ args = cliargs.parse_args()
 # COMMON FUNCTIONS
 def titleScreen():
   os.system('clear')
-  print ('\npysshbackup v2.0')
+  print ('\npysshbackup v2.1')
   print ('----------------\n')
 
 def exceptionsVariable(exceptions):
@@ -51,12 +51,12 @@ def syncFileFolders(files,folders,backupname,excludes):
   # rsync code for files
   for i in files:
     print ('\nBacking up: ' + i.text + '\n')
-    call('rsync -aHAP --delete ' + excludes + ' -e \'ssh -p ' + defaults.findtext('sshport') + '\' '  + i.text + ' ' + defaults.findtext('sshuser') + '@' + defaults.findtext('sshserver') + ':' + defaults.findtext('backupfolder') + backupname, shell=True)
+    call('rsync -aHAP --delete ' + excludes + ' -e \'ssh -p ' + settings.findtext('sshport') + '\' '  + i.text + ' ' + settings.findtext('sshuser') + '@' + settings.findtext('sshserver') + ':' + settings.findtext('backupfolder') + backupname, shell=True)
     print ('\nDone.\n')
   # rsync code for folders
   for i in folders:
     print ('\nBacking up: ' + i.text + '\n')
-    call('rsync -aHAP --delete ' + excludes + ' -e \'ssh -p ' + defaults.findtext(    'sshport') + '\' ' + i.text + ' ' + defaults.findtext('sshuser') + '@' + defaults.findtext('sshserver') + ':' + defaults.findtext('backupfolder') + backupname + i.text, shell=True)
+    call('rsync -aHAP --delete ' + excludes + ' -e \'ssh -p ' + settings.findtext(    'sshport') + '\' ' + i.text + ' ' + settings.findtext('sshuser') + '@' + settings.findtext('sshserver') + ':' + settings.findtext('backupfolder') + backupname + i.text, shell=True)
     print ('\nDone.\n')
 
 # HELP
@@ -74,31 +74,25 @@ def helpMenu():
 # PARTIAL
 def partialBackup(files,folders):
   titleScreen()
-  stdin, stdout, stderr = ssh.exec_command('ls ' + defaults.findtext('backupfolder'))
-  for index,object in enumerate(stdout):
-    print (str(index+1) + '   ' + object.rstrip())
-  print ('')
-  mostrecent = raw_input('Which backup is your most recent[#]? ')
+  stdin, stdout, stderr = ssh.exec_command('ls ' + settings.findtext('backupfolder'))
+  backupslist = [ ]
+  for i in stdout:
+    backupslist.append(i)
   partialname = raw_input('What would you like to call the new partial backup? ')
-  stdin, stdout, stderr = ssh.exec_command('ls ' + defaults.findtext('backupfolder'))
-  partiallist = []
-  for object in stdout:
-    partiallist.append(object)
-  partiallistname = partiallist[int(mostrecent) - 1]
-  print ('\nHardlinking ' + partiallistname.rstrip() + ' to ' + partialname + '\n')
-  stdin, stdout, stderr = ssh.exec_command(str('cp -al ' + defaults.findtext('backupfolder') + partiallistname.rstrip() + ' ' + defaults.findtext('backupfolder') + partialname))
+  print ('Hardlinking from: ' + backupslist[-1].rstrip() + ' to: ' + partialname )
+  stdin, stdout, stderr = ssh.exec_command(str('cp -al ' + settings.findtext('backupfolder') + backupslist[-1].rstrip() + ' ' + settings.findtext('backupfolder') + partialname))
   # this is needed to wait for copy process to finish before rsyncing vvv
   print stdout.readlines()
   syncFileFolders(files,folders,partialname,exceptionsVariable(exceptions))
 
 # CLI PARTIAL
 def clipartialBackup(files,folders):
-  stdin, stdout, stderr = ssh.exec_command('ls ' + defaults.findtext('backupfolder'))
+  stdin, stdout, stderr = ssh.exec_command('ls ' + settings.findtext('backupfolder'))
   backupslist = [ ]
   for i in stdout:
     backupslist.append(i)
   print ('Hardlinking from: ' + backupslist[-1].rstrip() + ' to: ' + time.strftime('%Y-%m-%d') )
-  stdin, stdout, stderr = ssh.exec_command(str('cp -al ' + defaults.findtext('backupfolder') + backupslist[-1].rstrip() + ' ' + defaults.findtext('backupfolder') + time.strftime('%Y-%m-%d') ))
+  stdin, stdout, stderr = ssh.exec_command(str('cp -al ' + settings.findtext('backupfolder') + backupslist[-1].rstrip() + ' ' + settings.findtext('backupfolder') + time.strftime('%Y-%m-%d') ))
   # this is needed to wait for copy process to finish before rsyncing vvv
   print stdout.readlines()
   syncFileFolders(files,folders,time.strftime('%Y-%m-%d'),exceptionsVariable(exceptions))
@@ -108,40 +102,36 @@ def fullBackup(files,folders):
   titleScreen()
   fullname = raw_input('What would you like to call the new full backup? ')
   # this makes the directory vvv
-  stdin, stdout, stderr = ssh.exec_command(str('mkdir -p ' + defaults.findtext('backupfolder') + fullname ))
+  stdin, stdout, stderr = ssh.exec_command(str('mkdir -p ' + settings.findtext('backupfolder') + fullname ))
   # this is needed to wait for mkdir process to finish before rsyncing vvv
   print stdout.readlines()
   for i in folders:
     print ('\nCreating folder: ' + i.text + '\n')
-    stdin, stdout, stderr = ssh.exec_command(str('mkdir -p ' + defaults.findtext('backupfolder') + fullname + i.text ))
+    stdin, stdout, stderr = ssh.exec_command(str('mkdir -p ' + settings.findtext('backupfolder') + fullname + i.text ))
     # this is needed to wait for mkdir process to finish before rsyncing vvv
     print stdout.readlines()
   syncFileFolders(files,folders,fullname,exceptionsVariable(exceptions))
 
 # DELETE
 def deleteBackup():
-  titleScreen()
+  listBackup()
   deletenumber = raw_input('Which backup do you want to delete[#]? ')
-  stdin, stdout, stderr = ssh.exec_command('ls ' + defaults.findtext('backupfolder'))
+  stdin, stdout, stderr = ssh.exec_command('ls ' + settings.findtext('backupfolder'))
   deletelist = []
   for object in stdout:
     deletelist.append(object)
   deletelistname = deletelist[ int(deletenumber) - 1 ]
   yesno = raw_input('Are you sure you want to delete: ' + deletenumber + ' ' + deletelistname.rstrip() + '? (Y/n) ')
   if (yesno == 'y' or yesno == 'Y' or yesno == 'yes' or yesno == 'Yes' or yesno == ''):
-    stdin, stdout, stderr = ssh.exec_command('rm -r ' + defaults.findtext('backupfolder') + deletelist[ int(deletenumber) - 1 ] )
+    stdin, stdout, stderr = ssh.exec_command('rm -r ' + settings.findtext('backupfolder') + deletelist[ int(deletenumber) - 1 ] )
     # this is needed to wait for mkdir process to finish before rsyncing vvv
     print stdout.readlines()
 
 # RESUME
 def resumeBackup(files,folders):
-  titleScreen()
-  stdin, stdout, stderr = ssh.exec_command('ls ' + defaults.findtext('backupfolder') )
-  for index,object in enumerate(stdout):
-    print ( str(index+1) + '   ' + object.rstrip())
-  print ('')
+  listBackup()
   resumenumber = raw_input('Which backup would you like to resume[#]? ')
-  stdin, stdout, stderr = ssh.exec_command('ls ' + defaults.findtext('backupfolder'))
+  stdin, stdout, stderr = ssh.exec_command('ls ' + settings.findtext('backupfolder'))
   resumelist = []
   for object in stdout:
     resumelist.append(object)
@@ -154,7 +144,7 @@ def resumeBackup(files,folders):
 # LIST
 def listBackup():
   titleScreen()
-  stdin, stdout, stderr = ssh.exec_command('ls ' + defaults.findtext('backupfolder'))
+  stdin, stdout, stderr = ssh.exec_command('ls ' + settings.findtext('backupfolder'))
   for index,object in enumerate(stdout):
     print (str(index+1) + '   ' + object.rstrip())
   print ('')
