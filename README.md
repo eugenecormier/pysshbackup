@@ -18,7 +18,9 @@ Installation
 
 2) save file in /home/<user>/.pysshbackup/defaults.xml (or if you'll run as root, /root/.pysshbackup/defaults.xml)
 
-3) open a terminal, cd to the uncompressed folder and run ./pysshbackup
+3) you can link/copy pysshbackup to /usr/local/sbin or run it directly (probably should be run as root (I always do)
+
+You can run the program directly (without options) to get a simple menu system or run it with the -p/--partial-cli option to do an automatic backup named today's date (if you make your own backups they probably should be the same... by date: year-month-day)
 
 Remember: you'll need to create an initial full backup before creating partials (f)
 Also: I find naming my backups by date (year-mo-da) tends to work well
