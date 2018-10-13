@@ -10,7 +10,7 @@ import time
 # for ssh connections
 import paramiko
 # for xml file parsing
-import elementtree.ElementTree as ET
+import xml.etree.ElementTree as ET
 # cli args
 import argparse
 
