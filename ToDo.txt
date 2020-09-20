@@ -1,0 +1,2 @@
+* rewrite for python 3
+* add in options for automatic backup pruning

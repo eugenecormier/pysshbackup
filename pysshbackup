@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 ##############################################
 ## IMPORTS
@@ -27,7 +27,7 @@ ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.connect(settings.findtext('sshserver'), port=int(settings.findtext('sshport')), username=settings.findtext('sshuser'), password=settings.findtext('sshpass'))
 # cli args
-cliargs = argparse.ArgumentParser(description='Random Music Theory Test Generator.', usage='%(prog)s [options]')
+cliargs = argparse.ArgumentParser(description='Python3 automatated or manual incremental backup script.', usage='%(prog)s [options]')
 cliargs.add_argument( '-p' , '--partial-cli' , help='run partial backup (automated)' , action='store_true' )
 args = cliargs.parse_args()
 
@@ -38,7 +38,7 @@ args = cliargs.parse_args()
 # COMMON FUNCTIONS
 def titleScreen():
   os.system('clear')
-  print ('\npysshbackup v2.1')
+  print ('\npysshbackup v3')
   print ('----------------\n')
 
 def exceptionsVariable(exceptions):
@@ -56,7 +56,7 @@ def syncFileFolders(files,folders,backupname,excludes):
   # rsync code for folders
   for i in folders:
     print ('\nBacking up: ' + i.text + '\n')
-    call('rsync -aHAP --delete ' + excludes + ' -e \'ssh -p ' + settings.findtext(    'sshport') + '\' ' + i.text + ' ' + settings.findtext('sshuser') + '@' + settings.findtext('sshserver') + ':' + settings.findtext('backupfolder') + backupname + i.text, shell=True)
+    call('rsync -aHAP --delete ' + excludes + ' -e \'ssh -p ' + settings.findtext('sshport') + '\' ' + i.text + ' ' + settings.findtext('sshuser') + '@' + settings.findtext('sshserver') + ':' + settings.findtext('backupfolder') + backupname + i.text, shell=True)
     print ('\nDone.\n')
 
 # HELP
@@ -78,11 +78,11 @@ def partialBackup(files,folders):
   backupslist = [ ]
   for i in stdout:
     backupslist.append(i)
-  partialname = raw_input('What would you like to call the new partial backup? ')
+  partialname = input('What would you like to call the new partial backup? ')
   print ('Hardlinking from: ' + backupslist[-1].rstrip() + ' to: ' + partialname )
   stdin, stdout, stderr = ssh.exec_command(str('cp -al ' + settings.findtext('backupfolder') + backupslist[-1].rstrip() + ' ' + settings.findtext('backupfolder') + partialname))
   # this is needed to wait for copy process to finish before rsyncing vvv
-  print stdout.readlines()
+  print(stdout.readlines())
   syncFileFolders(files,folders,partialname,exceptionsVariable(exceptions))
 
 # CLI PARTIAL
@@ -94,49 +94,49 @@ def clipartialBackup(files,folders):
   print ('Hardlinking from: ' + backupslist[-1].rstrip() + ' to: ' + time.strftime('%Y-%m-%d') )
   stdin, stdout, stderr = ssh.exec_command(str('cp -al ' + settings.findtext('backupfolder') + backupslist[-1].rstrip() + ' ' + settings.findtext('backupfolder') + time.strftime('%Y-%m-%d') ))
   # this is needed to wait for copy process to finish before rsyncing vvv
-  print stdout.readlines()
+  print(stdout.readlines())
   syncFileFolders(files,folders,time.strftime('%Y-%m-%d'),exceptionsVariable(exceptions))
 
 # FULL
 def fullBackup(files,folders):
   titleScreen()
-  fullname = raw_input('What would you like to call the new full backup? ')
+  fullname = input('What would you like to call the new full backup? ')
   # this makes the directory vvv
   stdin, stdout, stderr = ssh.exec_command(str('mkdir -p ' + settings.findtext('backupfolder') + fullname ))
   # this is needed to wait for mkdir process to finish before rsyncing vvv
-  print stdout.readlines()
+  print(stdout.readlines())
   for i in folders:
     print ('\nCreating folder: ' + i.text + '\n')
     stdin, stdout, stderr = ssh.exec_command(str('mkdir -p ' + settings.findtext('backupfolder') + fullname + i.text ))
     # this is needed to wait for mkdir process to finish before rsyncing vvv
-    print stdout.readlines()
+    print(stdout.readlines())
   syncFileFolders(files,folders,fullname,exceptionsVariable(exceptions))
 
 # DELETE
 def deleteBackup():
   listBackup()
-  deletenumber = raw_input('Which backup do you want to delete[#]? ')
+  deletenumber = input('Which backup do you want to delete[#]? ')
   stdin, stdout, stderr = ssh.exec_command('ls ' + settings.findtext('backupfolder'))
   deletelist = []
   for object in stdout:
     deletelist.append(object)
   deletelistname = deletelist[ int(deletenumber) - 1 ]
-  yesno = raw_input('Are you sure you want to delete: ' + deletenumber + ' ' + deletelistname.rstrip() + '? (Y/n) ')
+  yesno = input('Are you sure you want to delete: ' + deletenumber + ' ' + deletelistname.rstrip() + '? (Y/n) ')
   if (yesno == 'y' or yesno == 'Y' or yesno == 'yes' or yesno == 'Yes' or yesno == ''):
     stdin, stdout, stderr = ssh.exec_command('rm -r ' + settings.findtext('backupfolder') + deletelist[ int(deletenumber) - 1 ] )
     # this is needed to wait for mkdir process to finish before rsyncing vvv
-    print stdout.readlines()
+    print(stdout.readlines())
 
 # RESUME
 def resumeBackup(files,folders):
   listBackup()
-  resumenumber = raw_input('Which backup would you like to resume[#]? ')
+  resumenumber = input('Which backup would you like to resume[#]? ')
   stdin, stdout, stderr = ssh.exec_command('ls ' + settings.findtext('backupfolder'))
   resumelist = []
   for object in stdout:
     resumelist.append(object)
   resumelistname = resumelist[ int(resumenumber) - 1 ]
-  yesno = raw_input('Are you sure you want to resume: ' + resumelistname.rstrip() + '? (Y/n) ')
+  yesno = input('Are you sure you want to resume: ' + resumelistname.rstrip() + '? (Y/n) ')
   if (yesno == 'y' or yesno == 'Y' or yesno == 'yes' or yesno == 'Yes' or yesno == ''):
     createname = resumelistname.rstrip()
     syncFileFolders(files,folders,createname,exceptionsVariable(exceptions))
@@ -160,7 +160,7 @@ def main():
     loop = True
     titleScreen()
     while loop == True:
-      response = raw_input('Command (h for help): ')
+      response = input('Command (h for help): ')
       if response == 'h':
         helpMenu()
       elif response == 'p':
