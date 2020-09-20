@@ -3,7 +3,7 @@ pysshbackup
 
 A python cli for 'ssh + rsync + cp with hardlinks' backups featuring menu and incremental backups
 
- Pysshbackup v2.1
+ Pysshbackup v3
    A python backup system
 
 Installation
@@ -27,7 +27,7 @@ Also: I find naming my backups by date (year-mo-da) tends to work well
 
 Dependencies
 ##########################################
-python, paramiko, rsync, ssh, elementtree
+python3, paramiko, rsync, ssh, elementtree
 
 
 **** This script works best with passwordless ssh by key
