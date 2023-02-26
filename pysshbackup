@@ -96,7 +96,14 @@ def clipartialBackup(files,folders):
   # this is needed to wait for copy process to finish before rsyncing vvv
   print(stdout.readlines())
   syncFileFolders(files,folders,time.strftime('%Y-%m-%d'),exceptionsVariable(exceptions))
-
+  # New auto-delete function
+  currentDate = getCurrentDate()
+  currentBackups = listbackups()
+  monthlyDeleteList = createMonthlyCleanList(currentDate,currentBackups)
+  deleteStuff(monthlyDeleteList)
+  yearlyDeleteList = createYearlyCleanList(currentDate)
+  deleteStuff(yearlyDeleteList)
+  
 # FULL
 def fullBackup(files,folders):
   titleScreen()
@@ -123,9 +130,15 @@ def deleteBackup():
   deletelistname = deletelist[ int(deletenumber) - 1 ]
   yesno = input('Are you sure you want to delete: ' + deletenumber + ' ' + deletelistname.rstrip() + '? (Y/n) ')
   if (yesno == 'y' or yesno == 'Y' or yesno == 'yes' or yesno == 'Yes' or yesno == ''):
-    stdin, stdout, stderr = ssh.exec_command('rm -r ' + settings.findtext('backupfolder') + deletelist[ int(deletenumber) - 1 ] )
-    # this is needed to wait for mkdir process to finish before rsyncing vvv
+    ### I updated the following Feb 2023 to use the faster rsync deletion meth.
+    # rsync empty the dir
+    stdin, stdout, stderr = ssh.exec_command('rsync -a --delete /var/empty/ ' + settings.findtext('backupfolder') + deletelist[ int(deletenumber) - 1 ] )
     print(stdout.readlines())
+    # remove empty dir
+    stdin, stdout, stderr = ssh.exec_command('rmdir ' + settings.findtext('backupfolder') + deletelist[ int(deletenumber) - 1 ] )
+    print(stdout.readlines())
+    # play a completion sound
+    print('\a')
 
 # RESUME
 def resumeBackup(files,folders):
@@ -148,6 +161,74 @@ def listBackup():
   for index,object in enumerate(stdout):
     print (str(index+1) + '   ' + object.rstrip())
   print ('')
+
+##### THIS NEXT SECTION IS FOR THE NEW AUTO-DELETE FUNCTION TO CLI PARTIALS #####
+# this code does the following:
+#   1) deletes backups over a year old
+#   2) keeps the last 10 days of the most recent backups
+#   3) keeps one day a month for the last 12 months
+
+def getCurrentDate():
+    currentDate = time.strftime('%Y-%m-%d')
+    return currentDate
+
+def listbackups():
+    stdin, stdout, stderr = ssh.exec_command('ls ' + settings.findtext('backupfolder'))
+    backupslist = []
+    for index,object in enumerate(stdout):
+        backupslist.append(object.rstrip())
+    return backupslist
+
+def createMonthlyCleanList(currentdate,backups):
+    ### keep the last 10 backups
+    del backups[-10:]
+    ### remove all but the first backup of each month
+    # get a list of all years included in backups
+    yearlist = []
+    for year in backups:
+    	yearlist.append(year[0:4])
+    # remove duplicates from list
+    yearlist = list(dict.fromkeys(yearlist))
+    # get a list of all months for each year
+    for year in yearlist:
+    	monthlist = []
+    	for i in backups:
+    		if i[0:4] == year:
+    			monthlist.append(i[5:7])
+    	# remove duplicates
+    	monthlist = list(dict.fromkeys(monthlist))
+       	# match year-month and create a list
+    	for i in monthlist:
+    		matches = [match for match in backups if year + '-' + i in match]
+    		listlen = len(matches)
+    		del matches[1:listlen]
+    		for x in matches:
+    			backups.remove(x)
+    return(backups)
+
+def createYearlyCleanList(currentDate):
+    ### remove all backups over one year old
+    # get new dir listing
+    currentBackups = listbackups()
+    
+    listindex = len(currentBackups)
+    for i in reversed(currentBackups):
+        if int(i[0:4]) < int(currentDate[0:4]) - 1:
+            del currentBackups[listindex:]
+            break
+        listindex = listindex - 1    
+    else:
+    	currentBackups = []
+    return currentBackups
+
+def deleteStuff(List):
+    for backup in List:
+        print('Deleting: ' + backup + '...')
+        stdin, stdout, stderr = ssh.exec_command('rsync -a --delete /var/empty/ ' + settings.findtext('backupfolder') + backup)
+        print(stdout.readlines())
+        stdin, stdout, stderr = ssh.exec_command('rmdir ' + settings.findtext('backupfolder') + backup)
+        print(stdout.readlines())
+
 
 ##############################################
 ## MAIN FUNCTION

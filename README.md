@@ -23,7 +23,7 @@ Installation
 You can run the program directly (without options) to get a simple menu system or run it with the -p/--partial-cli option to do an automatic backup named today's date (if you make your own backups they probably should be the same... by date: year-month-day)
 
 Remember: you'll need to create an initial full backup before creating partials (f)
-Also: I find naming my backups by date (year-mo-da) tends to work well
+Also: I find naming my backups by date (year-mo-da) tends to work well, this format is absolutely necessary when working with the -p (cli partial backup) flag.
 
 Dependencies
 ##########################################
